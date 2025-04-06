@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black"
+    android:gravity="center"
+    android:orientation="vertical">
+
+    <Button
+        android:id="@+id/cartOperator"
+        android:layout_width="260dp"
+        android:layout_height="wrap_content"
+        android:background="@drawable/rounded_button"
+        android:text="CART OPERATOR"
+        android:textColor="@color/raspberrypi"
+        android:textSize="25sp"
+        android:textStyle="bold" />
+
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="23dp" />
+
+    <Button
+        android:id="@+id/picker"
+        android:layout_width="260dp"
+        android:layout_height="wrap_content"
+       android:background="@drawable/rounded_button"
+        android:text="PICKER"
+        android:textColor="@color/raspberrypi"
+        android:textSize="25sp"
+        android:textStyle="bold" />
+</LinearLayout>
