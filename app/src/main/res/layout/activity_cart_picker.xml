@@ -33,6 +33,36 @@
     />
     </LinearLayout>
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:padding="10dp"
+            >
+
+            <TextView
+                android:layout_width="161dp"
+                android:layout_height="wrap_content"
+                android:text="CARDS"
+                android:textColor="@color/white"
+                android:textSize="40sp" />
+
+            <Space
+                android:layout_width="167dp"
+                android:layout_height="39dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/white"
+                android:text="UTILITY ITEMS"
+                android:textSize="40sp"
+                />
+
+
+        </LinearLayout>
+
+
     </LinearLayout>
 
 </LinearLayout>
