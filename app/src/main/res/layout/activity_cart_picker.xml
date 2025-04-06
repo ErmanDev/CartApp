@@ -45,7 +45,10 @@
                 android:layout_height="wrap_content"
                 android:text="CARDS"
                 android:textColor="@color/white"
-                android:textSize="40sp" />
+                android:textSize="40sp"
+                android:textFontWeight="900"
+                android:textAlignment="center"
+                />
 
             <Space
                 android:layout_width="167dp"
@@ -57,6 +60,8 @@
                 android:textColor="@color/white"
                 android:text="UTILITY ITEMS"
                 android:textSize="40sp"
+                android:textFontWeight="900"
+                android:textAlignment="center"
                 />
 
 
