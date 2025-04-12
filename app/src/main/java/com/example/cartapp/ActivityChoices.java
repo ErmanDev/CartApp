@@ -16,10 +16,21 @@ public class ActivityChoices extends AppCompatActivity {
         setContentView(R.layout.activity_choices);
 
         Button cartOperatorButton = findViewById(R.id.cartOperator);
+        Button pickerButton = findViewById(R.id.pickButton);
+
+
         cartOperatorButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(ActivityChoices.this, CartOperator.class);
+                startActivity(intent);
+            }
+        });
+
+        pickerButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent (ActivityChoices.this, CartPicker.class);
                 startActivity(intent);
             }
         });

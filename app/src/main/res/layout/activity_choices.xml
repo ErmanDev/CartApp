@@ -21,7 +21,7 @@
         android:layout_height="23dp" />
 
     <Button
-        android:id="@+id/picker"
+        android:id="@+id/pickButton"
         android:layout_width="260dp"
         android:layout_height="wrap_content"
        android:background="@drawable/rounded_button"
