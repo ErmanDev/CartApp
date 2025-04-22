@@ -61,7 +61,7 @@ public class CartOperator extends AppCompatActivity {
         viewLayout = findViewById(R.id.viewLayout);
         toneGenerator = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100);
         
-        // Initialize NSD manager
+
         nsdManager = (NsdManager) getSystemService(Context.NSD_SERVICE);
         initializeRegistrationListener();
 
@@ -97,7 +97,7 @@ public class CartOperator extends AppCompatActivity {
 
             @Override
             public void onUnregistrationFailed(NsdServiceInfo serviceInfo, int errorCode) {
-                // Ignore
+
             }
 
             @Override
@@ -110,7 +110,7 @@ public class CartOperator extends AppCompatActivity {
 
             @Override
             public void onServiceUnregistered(NsdServiceInfo serviceInfo) {
-                // Ignore
+
             }
         };
     }
@@ -155,7 +155,7 @@ public class CartOperator extends AppCompatActivity {
 
                 runOnUiThread(() -> {
                     Toast.makeText(this, "Server started on port " + PORT, Toast.LENGTH_SHORT).show();
-                    // Register the service after server is started
+
                     registerService();
                 });
 
@@ -167,15 +167,15 @@ public class CartOperator extends AppCompatActivity {
                     while ((line = reader.readLine()) != null) {
                         String finalLine = line;
                         
-                        // Check if this is a status request
+
                         if (finalLine.equals("STATUS_REQUEST")) {
-                            // Send status updates to the picker
+
                             sendStatusUpdates(client);
                         } else {
-                            // Process normal request
+
                             mainHandler.post(() -> {
                                 displayRequest(finalLine);
-                                // Play notification sound for new request
+
                                 toneGenerator.startTone(ToneGenerator.TONE_PROP_BEEP, 150);
                             });
                         }
@@ -197,7 +197,7 @@ public class CartOperator extends AppCompatActivity {
     
     private void sendStatusUpdates(Socket client) {
         try {
-            // Prepare status updates for all rows
+
             StringBuilder statusUpdates = new StringBuilder();
             
             for (LinearLayout row : rowStatusMap.keySet()) {
@@ -207,14 +207,14 @@ public class CartOperator extends AppCompatActivity {
                 String qty = rowQtyMap.get(row);
                 String status = statusView.getText().toString();
                 
-                // Format: LINE,ITEM,QTY,STATUS
+
                 statusUpdates.append(lineNum).append(",")
                              .append(item).append(",")
                              .append(qty).append(",")
                              .append(status).append("|");
             }
             
-            // Send the status updates
+
             PrintWriter writer = new PrintWriter(client.getOutputStream(), true);
             writer.println(statusUpdates.toString());
             

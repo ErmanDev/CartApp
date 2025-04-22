@@ -8,19 +8,13 @@ import android.os.Looper;
 import android.os.StrictMode;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
-
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -46,12 +40,13 @@ import android.media.MediaPlayer;
 
 public class CartPicker extends AppCompatActivity {
 
-    Spinner lineSpinner;
-    EditText itemInput;
-    Button sendBtn, decreaseBtn, increaseBtn;
-    TextView lineTextView, qtyDisplay;
-    LinearLayout cardsLayout, utilityLayout;
-    private MediaPlayer mediaPlayer;
+    private Button line1Btn, line2Btn, line3Btn, line4Btn, line5Btn;
+    private String selectedLine = "";
+    private Button sendBtn, decreaseBtn, increaseBtn;
+    private Button btnCoop, btnCard, btnTape, btnCrayon, btnBlade, btnRubberBond;
+    private TextView lineTextView, qtyDisplay;
+    private LinearLayout cardsLayout, utilityLayout;
+    private String selectedItem = "";
 
     private static final String OPERATOR_IP_PREF = "operator_ip";
     private static final String OPERATOR_SERVICE_TYPE = "_cartoperator._tcp.";
@@ -79,20 +74,27 @@ public class CartPicker extends AppCompatActivity {
 
         StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder().permitNetwork().build());
 
-        // Initialize MediaPlayer for sound effects
-        mediaPlayer = MediaPlayer.create(this, R.raw.meow);
-        mediaPlayer.setVolume(1.0f, 1.0f);
-
         // Initialize views
-        lineSpinner = findViewById(R.id.lineSpinner);
+        line1Btn = findViewById(R.id.line1Btn);
+        line2Btn = findViewById(R.id.line2Btn);
+        line3Btn = findViewById(R.id.line3Btn);
+        line4Btn = findViewById(R.id.line4Btn);
+        line5Btn = findViewById(R.id.line5Btn);
         lineTextView = findViewById(R.id.lineTextview);
-        itemInput = findViewById(R.id.itemInput);
         sendBtn = findViewById(R.id.sendBtn);
         cardsLayout = findViewById(R.id.cardsLayout);
         utilityLayout = findViewById(R.id.utilityLayout);
         decreaseBtn = findViewById(R.id.decreaseBtn);
         increaseBtn = findViewById(R.id.increaseBtn);
         qtyDisplay = findViewById(R.id.qtyDisplay);
+        
+        // Initialize item buttons
+        btnCoop = findViewById(R.id.btnCoop);
+        btnCard = findViewById(R.id.btnCard);
+        btnTape = findViewById(R.id.btnTape);
+        btnCrayon = findViewById(R.id.btnCrayon);
+        btnBlade = findViewById(R.id.btnBlade);
+        btnRubberBond = findViewById(R.id.btnRubberBond);
 
         // Initialize NSD manager
         nsdManager = (NsdManager) getSystemService(Context.NSD_SERVICE);
@@ -102,30 +104,31 @@ public class CartPicker extends AppCompatActivity {
         // Load saved IP or start discovery
         loadOperatorIp();
 
-        // Spinner items
-        String[] lines = {"Select Line", "LINE 1", "LINE 2", "LINE 3", "LINE 4", "LINE 5"};
-
-        // Use the custom spinner layout files we created
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.spinner_item, lines);
-        adapter.setDropDownViewResource(R.layout.spinner_dropdown_item);
-        lineSpinner.setAdapter(adapter);
-
-        // Set default text for TextView
-        lineTextView.setText(lines[1]);
-
-        // Update TextView when spinner selection changes
-        lineSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+        // Set up line button click listeners
+        View.OnClickListener lineButtonListener = new View.OnClickListener() {
             @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                String selectedLine = parent.getItemAtPosition(position).toString();
+            public void onClick(View v) {
+                // Reset all line buttons to default state
+                resetLineButtonBackgrounds();
+                
+                // Set selected button background
+                v.setBackgroundColor(Color.BLACK);
+                ((Button) v).setTextColor(Color.WHITE);
+                
+                // Set selected line
+                selectedLine = ((Button) v).getText().toString();
                 lineTextView.setText(selectedLine);
             }
+        };
 
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-                // Optional
-            }
-        });
+        line1Btn.setOnClickListener(lineButtonListener);
+        line2Btn.setOnClickListener(lineButtonListener);
+        line3Btn.setOnClickListener(lineButtonListener);
+        line4Btn.setOnClickListener(lineButtonListener);
+        line5Btn.setOnClickListener(lineButtonListener);
+
+        // Set default line
+        line1Btn.performClick();
 
         // Set up quantity controls
         decreaseBtn.setOnClickListener(new View.OnClickListener() {
@@ -146,44 +149,62 @@ public class CartPicker extends AppCompatActivity {
             }
         });
 
+        // Set up item button click listeners
+        View.OnClickListener itemButtonListener = new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Reset all buttons to default background
+                resetItemButtonBackgrounds();
+                
+                // Set selected button background
+                v.setBackgroundColor(Color.BLACK);
+                ((Button) v).setTextColor(Color.WHITE);
+                
+                // Set selected item
+                selectedItem = ((Button) v).getText().toString();
+            }
+        };
+
+        btnCoop.setOnClickListener(itemButtonListener);
+        btnCard.setOnClickListener(itemButtonListener);
+        btnTape.setOnClickListener(itemButtonListener);
+        btnCrayon.setOnClickListener(itemButtonListener);
+        btnBlade.setOnClickListener(itemButtonListener);
+        btnRubberBond.setOnClickListener(itemButtonListener);
+
         // Handle send button click
         sendBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // Play sound effect
-                if (mediaPlayer != null) {
-                    mediaPlayer.start();
-                }
-                
-                String line = lineSpinner.getSelectedItem().toString();
-                String item = itemInput.getText().toString().trim();
+                String line = selectedLine;
                 String qty = String.valueOf(currentQuantity);
 
                 // Check if a valid line is selected
-                if (line.equals("Select Line")) {
+                if (line.isEmpty()) {
                     Toast.makeText(CartPicker.this, "Please select a valid line (Line 1-5)", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
-                if (item.isEmpty()) {
-                    Toast.makeText(CartPicker.this, "Please enter an item name", Toast.LENGTH_SHORT).show();
+                if (selectedItem.isEmpty()) {
+                    Toast.makeText(CartPicker.this, "Please select an item", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
-                String message = line + "," + item + "," + qty;
+                String message = line + "," + selectedItem + "," + qty;
                 boolean sent = sendMessage(message);
 
                 if (sent) {
                     // Add the request card
-                    RequestItem request = new RequestItem(line, item, qty, new Date());
+                    RequestItem request = new RequestItem(line, selectedItem, qty, new Date());
                     pendingRequests.add(request);
                     addRequestCard(request);
-
-                    // Clear input fields
-                    itemInput.setText("");
-
-                    // Simulate status updates (for demo purposes)
+                    
+                    // Simulate request processing to move to pending
                     simulateRequestProcessing(request);
+
+                    // Reset selected item
+                    selectedItem = "";
+                    resetItemButtonBackgrounds();
                 }
             }
         });
@@ -197,10 +218,6 @@ public class CartPicker extends AppCompatActivity {
         super.onDestroy();
         stopStatusFetching();
         stopDiscovery();
-        if (mediaPlayer != null) {
-            mediaPlayer.release();
-            mediaPlayer = null;
-        }
     }
     
     private void loadOperatorIp() {
@@ -259,7 +276,7 @@ public class CartPicker extends AppCompatActivity {
 
             @Override
             public void onDiscoveryStopped(String serviceType) {
-                // Ignore
+
             }
 
             @Override
@@ -611,6 +628,36 @@ public class CartPicker extends AppCompatActivity {
                 moveRequestToPending(request);
             }
         }, 5000 + new Random().nextInt(5000)); // Random delay between 5-10 seconds
+    }
+
+    private void resetItemButtonBackgrounds() {
+        btnCoop.setBackgroundColor(Color.WHITE);
+        btnCard.setBackgroundColor(Color.WHITE);
+        btnTape.setBackgroundColor(Color.WHITE);
+        btnCrayon.setBackgroundColor(Color.WHITE);
+        btnBlade.setBackgroundColor(Color.WHITE);
+        btnRubberBond.setBackgroundColor(Color.WHITE);
+        
+        btnCoop.setTextColor(Color.BLACK);
+        btnCard.setTextColor(Color.BLACK);
+        btnTape.setTextColor(Color.BLACK);
+        btnCrayon.setTextColor(Color.BLACK);
+        btnBlade.setTextColor(Color.BLACK);
+        btnRubberBond.setTextColor(Color.BLACK);
+    }
+
+    private void resetLineButtonBackgrounds() {
+        line1Btn.setBackgroundColor(Color.WHITE);
+        line2Btn.setBackgroundColor(Color.WHITE);
+        line3Btn.setBackgroundColor(Color.WHITE);
+        line4Btn.setBackgroundColor(Color.WHITE);
+        line5Btn.setBackgroundColor(Color.WHITE);
+        
+        line1Btn.setTextColor(Color.BLACK);
+        line2Btn.setTextColor(Color.BLACK);
+        line3Btn.setTextColor(Color.BLACK);
+        line4Btn.setTextColor(Color.BLACK);
+        line5Btn.setTextColor(Color.BLACK);
     }
 
     // Class to represent a request item

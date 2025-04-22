@@ -46,7 +46,7 @@
                 android:gravity="center" />
         </LinearLayout>
 
-        <!-- Status on the far right -->
+
         <TextView
             android:id="@+id/statusText"
             android:layout_width="wrap_content"
@@ -60,7 +60,7 @@
             android:minWidth="80dp"
             android:gravity="center" />
 
-        <!-- Timestamp below (will be positioned at the bottom) -->
+
         <TextView
             android:id="@+id/timestampText"
             android:layout_width="wrap_content"
