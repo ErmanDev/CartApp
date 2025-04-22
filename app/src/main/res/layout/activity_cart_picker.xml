@@ -7,10 +7,12 @@
     android:orientation="horizontal">
 
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="match_parent"
+        android:layout_weight="1"
         android:orientation="vertical">
 
+        <!-- Header with Line, Request, and Pending in the same row -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -19,116 +21,206 @@
             android:orientation="horizontal">
 
             <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="REQUEST"
+                android:textColor="#FFFF00"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:layout_marginStart="16dp" />
+
+            <TextView
+                android:id="@+id/lineTextview"
                 android:layout_width="wrap_content"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@color/white"
+                android:padding="2dp"
+                android:text="LINE 1"
                 android:textAlignment="center"
-                android:background="@drawable/rounded_background"
-                android:textSize="30sp"
-                android:textFontWeight="900"
-                android:text="LINE {number}"
-                android:padding="6dp"
-                android:textColor="@color/black" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:padding="10dp">
+                android:textColor="@color/black"
+                android:textSize="15sp"
+                android:textFontWeight="900" />
 
             <TextView
-                android:layout_width="161dp"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="CARDS"
-                android:textColor="@color/white"
-                android:textSize="40sp"
-                android:textFontWeight="900"
-                android:textAlignment="center" />
-
-            <Space
-                android:layout_width="167dp"
-                android:layout_height="39dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/white"
-                android:text="UTILITY ITEMS"
-                android:textSize="40sp"
-                android:textFontWeight="900"
-                android:textAlignment="center" />
+                android:layout_weight="1"
+                android:textColor="#FFFF00"
+                android:text="PENDING"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:gravity="center" />
         </LinearLayout>
 
-        <!-- Cards and utility sections -->
+        <!-- Cards & Utility with divider -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
             android:orientation="horizontal">
 
-            <LinearLayout
-                android:id="@+id/cardsLayout"
+            <ScrollView
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:orientation="vertical">
-                <!-- Cards dynamically added here -->
-            </LinearLayout>
+                android:fillViewport="true">
 
-            <LinearLayout
-                android:id="@+id/utilityLayout"
+                <LinearLayout
+                    android:id="@+id/cardsLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="#222222"
+                    android:padding="8dp">
+                    <!-- Cards dynamically added here -->
+                </LinearLayout>
+            </ScrollView>
+
+            <View
+                android:layout_width="2dp"
+                android:layout_height="match_parent"
+                android:background="#444444" />
+
+            <ScrollView
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:orientation="vertical">
-                <!-- Utility items dynamically added here -->
-            </LinearLayout>
+                android:fillViewport="true">
+
+                <LinearLayout
+                    android:id="@+id/utilityLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="#222222"
+                    android:padding="8dp">
+                    <!-- Utility items dynamically added here -->
+                </LinearLayout>
+            </ScrollView>
         </LinearLayout>
 
-        <!-- DYNAMIC CONTROLS (BOTTOM) -->
+        <!-- Dynamic Controls (Bottom) with increased spacing -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingTop="16dp">
+            android:paddingTop="16dp"
+            android:paddingBottom="8dp"
+            android:background="#111111">
 
-            <EditText
-                android:id="@+id/lineInput"
+            <!-- Dropdown for Line Number with better visibility -->
+            <Spinner
+                android:id="@+id/lineSpinner"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Line Number"
-                android:textColorHint="#CCCCCC"
-                android:textColor="#FFFFFF"
-                android:backgroundTint="#FFFFFF" />
+                android:backgroundTint="#FFFFFF"
+                android:popupBackground="@color/white"
+                android:minHeight="48dp" />
 
-            <EditText
-                android:id="@+id/itemInput"
+            <!-- Item Name and Quantity in the same row -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Item Name"
-                android:textColorHint="#CCCCCC"
-                android:textColor="#FFFFFF"
-                android:backgroundTint="#FFFFFF" />
+                android:orientation="horizontal"
+                android:paddingTop="8dp">
 
-            <EditText
-                android:id="@+id/qtyInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Quantity"
-                android:textColorHint="#CCCCCC"
-                android:textColor="#FFFFFF"
-                android:backgroundTint="#FFFFFF" />
+                <!-- Item Name -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="2"
+                    android:orientation="vertical">
 
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Item Name:"
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp"
+                        android:paddingLeft="4dp"
+                        android:paddingBottom="2dp" />
+
+                    <EditText
+                        android:id="@+id/itemInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Enter item name"
+                        android:textColorHint="#AAAAAA"
+                        android:textColor="#FFFFFF"
+                        android:backgroundTint="#FFFFFF"
+                        android:inputType="textCapWords"
+                        android:minHeight="48dp" />
+                </LinearLayout>
+
+                <!-- Quantity with plus/minus controls -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="16dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Quantity:"
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp"
+                        android:paddingLeft="4dp"
+                        android:paddingBottom="2dp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center">
+
+                        <Button
+                            android:id="@+id/decreaseBtn"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:text="-"
+                            android:textSize="24sp"
+                            android:padding="0dp"
+                            android:background="#444444" />
+
+                        <TextView
+                            android:id="@+id/qtyDisplay"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:gravity="center"
+                            android:text="1"
+                            android:textColor="#FFFFFF"
+                            android:textSize="20sp"
+                            android:background="#222222"
+                            android:layout_marginHorizontal="4dp" />
+
+                        <Button
+                            android:id="@+id/increaseBtn"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:text="+"
+                            android:textSize="24sp"
+                            android:padding="0dp"
+                            android:background="#444444" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Send Button with improved visibility -->
             <Button
                 android:id="@+id/sendBtn"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Send Request"
+                android:text="SEND REQUEST"
                 android:background="#00FF00"
                 android:textColor="#000000"
                 android:textStyle="bold"
                 android:textSize="20sp"
-                android:layout_marginTop="8dp" />
+                android:layout_marginTop="16dp"
+                android:padding="12dp" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

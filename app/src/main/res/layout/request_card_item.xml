@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="6dp"
+    app:cardBackgroundColor="#FFF"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="4dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:gravity="center_vertical">
+
+        <!-- Item Name and Quantity in the same row -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/itemNameText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="@color/black"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/quantityText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/black"
+                android:textSize="16sp"
+                android:layout_marginStart="16dp"
+
+                android:padding="4dp"
+                android:minWidth="40dp"
+                android:gravity="center" />
+        </LinearLayout>
+
+        <!-- Status on the far right -->
+        <TextView
+            android:id="@+id/statusText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#00AA00"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginStart="16dp"
+            android:background="#222222"
+            android:padding="8dp"
+            android:minWidth="80dp"
+            android:gravity="center" />
+
+        <!-- Timestamp below (will be positioned at the bottom) -->
+        <TextView
+            android:id="@+id/timestampText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#CCCCCC"
+            android:textSize="12sp"
+            android:layout_marginStart="8dp"
+            android:visibility="gone" />
+    </LinearLayout>
+</androidx.cardview.widget.CardView>

@@ -1,27 +1,74 @@
 package com.example.cartapp;
 
 import android.content.pm.ActivityInfo;
+import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.StrictMode;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+import java.util.Random;
+import android.content.SharedPreferences;
+import android.net.nsd.NsdManager;
+import android.net.nsd.NsdServiceInfo;
+import android.net.wifi.WifiManager;
+import android.text.format.Formatter;
+import android.app.AlertDialog;
+import android.view.inputmethod.EditorInfo;
+import android.text.InputType;
+import android.content.Context;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
 
 public class CartPicker extends AppCompatActivity {
 
-    EditText lineInput, itemInput, qtyInput;
-    Button sendBtn;
+    Spinner lineSpinner;
+    EditText itemInput;
+    Button sendBtn, decreaseBtn, increaseBtn;
+    TextView lineTextView, qtyDisplay;
+    LinearLayout cardsLayout, utilityLayout;
+    private MediaPlayer mediaPlayer;
 
-    private static final String OPERATOR_IP = "192.168.1.57";
+    private static final String OPERATOR_IP_PREF = "operator_ip";
+    private static final String OPERATOR_SERVICE_TYPE = "_cartoperator._tcp.";
+    private String operatorIp;
     private static final int PORT = 5010;
+    private static final int STATUS_FETCH_INTERVAL = 3000; // 3 seconds
+
+    // List to track pending requests
+    private List<RequestItem> pendingRequests = new ArrayList<>();
+    private Handler handler = new Handler(Looper.getMainLooper());
+    private int currentQuantity = 1;
+    private boolean isStatusFetchingActive = false;
+    private Thread statusFetchThread;
+    private NsdManager nsdManager;
+    private NsdManager.DiscoveryListener discoveryListener;
+    private NsdManager.ResolveListener resolveListener;
+    private boolean isResolving = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,41 +79,557 @@ public class CartPicker extends AppCompatActivity {
 
         StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder().permitNetwork().build());
 
-        lineInput = findViewById(R.id.lineInput);
-        itemInput = findViewById(R.id.itemInput);
-        qtyInput = findViewById(R.id.qtyInput);
-        sendBtn = findViewById(R.id.sendBtn);
+        // Initialize MediaPlayer for sound effects
+        mediaPlayer = MediaPlayer.create(this, R.raw.meow);
+        mediaPlayer.setVolume(1.0f, 1.0f);
 
+        // Initialize views
+        lineSpinner = findViewById(R.id.lineSpinner);
+        lineTextView = findViewById(R.id.lineTextview);
+        itemInput = findViewById(R.id.itemInput);
+        sendBtn = findViewById(R.id.sendBtn);
+        cardsLayout = findViewById(R.id.cardsLayout);
+        utilityLayout = findViewById(R.id.utilityLayout);
+        decreaseBtn = findViewById(R.id.decreaseBtn);
+        increaseBtn = findViewById(R.id.increaseBtn);
+        qtyDisplay = findViewById(R.id.qtyDisplay);
+
+        // Initialize NSD manager
+        nsdManager = (NsdManager) getSystemService(Context.NSD_SERVICE);
+        initializeDiscoveryListener();
+        initializeResolveListener();
+
+        // Load saved IP or start discovery
+        loadOperatorIp();
+
+        // Spinner items
+        String[] lines = {"Select Line", "LINE 1", "LINE 2", "LINE 3", "LINE 4", "LINE 5"};
+
+        // Use the custom spinner layout files we created
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.spinner_item, lines);
+        adapter.setDropDownViewResource(R.layout.spinner_dropdown_item);
+        lineSpinner.setAdapter(adapter);
+
+        // Set default text for TextView
+        lineTextView.setText(lines[1]);
+
+        // Update TextView when spinner selection changes
+        lineSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                String selectedLine = parent.getItemAtPosition(position).toString();
+                lineTextView.setText(selectedLine);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                // Optional
+            }
+        });
+
+        // Set up quantity controls
+        decreaseBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (currentQuantity > 1) {
+                    currentQuantity--;
+                    qtyDisplay.setText(String.valueOf(currentQuantity));
+                }
+            }
+        });
+
+        increaseBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                currentQuantity++;
+                qtyDisplay.setText(String.valueOf(currentQuantity));
+            }
+        });
+
+        // Handle send button click
         sendBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String line = lineInput.getText().toString().trim();
+                // Play sound effect
+                if (mediaPlayer != null) {
+                    mediaPlayer.start();
+                }
+                
+                String line = lineSpinner.getSelectedItem().toString();
                 String item = itemInput.getText().toString().trim();
-                String qty = qtyInput.getText().toString().trim();
+                String qty = String.valueOf(currentQuantity);
 
-                if (line.isEmpty() || item.isEmpty() || qty.isEmpty()) {
-                    Toast.makeText(CartPicker.this, "Please fill all fields", Toast.LENGTH_SHORT).show();
+                // Check if a valid line is selected
+                if (line.equals("Select Line")) {
+                    Toast.makeText(CartPicker.this, "Please select a valid line (Line 1-5)", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                if (item.isEmpty()) {
+                    Toast.makeText(CartPicker.this, "Please enter an item name", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
                 String message = line + "," + item + "," + qty;
-                sendMessage(message);
+                boolean sent = sendMessage(message);
+
+                if (sent) {
+                    // Add the request card
+                    RequestItem request = new RequestItem(line, item, qty, new Date());
+                    pendingRequests.add(request);
+                    addRequestCard(request);
+
+                    // Clear input fields
+                    itemInput.setText("");
+
+                    // Simulate status updates (for demo purposes)
+                    simulateRequestProcessing(request);
+                }
             }
         });
+        
+        // Start status fetching thread
+        startStatusFetching();
+    }
+    
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        stopStatusFetching();
+        stopDiscovery();
+        if (mediaPlayer != null) {
+            mediaPlayer.release();
+            mediaPlayer = null;
+        }
+    }
+    
+    private void loadOperatorIp() {
+        SharedPreferences prefs = getSharedPreferences("CartAppPrefs", MODE_PRIVATE);
+        operatorIp = prefs.getString(OPERATOR_IP_PREF, null);
+        
+        if (operatorIp != null) {
+            // Try to connect to verify the IP is still valid
+            verifyOperatorConnection();
+        } else {
+            // Start discovery if no saved IP
+            startDiscovery();
+        }
+    }
+    
+    private void verifyOperatorConnection() {
+        new Thread(() -> {
+            try {
+                Socket socket = new Socket(operatorIp, PORT);
+                socket.close();
+                // Connection successful, IP is valid
+                runOnUiThread(() -> Toast.makeText(CartPicker.this, 
+                    "Connected to operator at " + operatorIp, Toast.LENGTH_SHORT).show());
+            } catch (Exception e) {
+                // Connection failed, start discovery
+                runOnUiThread(() -> {
+                    Toast.makeText(CartPicker.this, 
+                        "Could not connect to operator, starting discovery", Toast.LENGTH_SHORT).show();
+                    startDiscovery();
+                });
+            }
+        }).start();
+    }
+    
+    private void initializeDiscoveryListener() {
+        discoveryListener = new NsdManager.DiscoveryListener() {
+            @Override
+            public void onStartDiscoveryFailed(String serviceType, int errorCode) {
+                runOnUiThread(() -> {
+                    Toast.makeText(CartPicker.this, 
+                        "Discovery failed to start: " + errorCode, Toast.LENGTH_SHORT).show();
+                    showManualIpDialog();
+                });
+            }
+
+            @Override
+            public void onStopDiscoveryFailed(String serviceType, int errorCode) {
+                // Ignore
+            }
+
+            @Override
+            public void onDiscoveryStarted(String serviceType) {
+                runOnUiThread(() -> Toast.makeText(CartPicker.this, 
+                    "Searching for operator...", Toast.LENGTH_SHORT).show());
+            }
+
+            @Override
+            public void onDiscoveryStopped(String serviceType) {
+                // Ignore
+            }
+
+            @Override
+            public void onServiceFound(NsdServiceInfo service) {
+                if (!service.getServiceType().equals(OPERATOR_SERVICE_TYPE)) {
+                    return;
+                }
+                
+                if (!isResolving) {
+                    isResolving = true;
+                    nsdManager.resolveService(service, resolveListener);
+                }
+            }
+
+            @Override
+            public void onServiceLost(NsdServiceInfo service) {
+                // Ignore
+            }
+        };
+    }
+    
+    private void initializeResolveListener() {
+        resolveListener = new NsdManager.ResolveListener() {
+            @Override
+            public void onResolveFailed(NsdServiceInfo serviceInfo, int errorCode) {
+                runOnUiThread(() -> {
+                    Toast.makeText(CartPicker.this, 
+                        "Failed to resolve service: " + errorCode, Toast.LENGTH_SHORT).show();
+                    showManualIpDialog();
+                });
+                isResolving = false;
+            }
+
+            @Override
+            public void onServiceResolved(NsdServiceInfo serviceInfo) {
+                operatorIp = serviceInfo.getHost().getHostAddress();
+                
+                // Save the IP
+                SharedPreferences.Editor editor = getSharedPreferences("CartAppPrefs", MODE_PRIVATE).edit();
+                editor.putString(OPERATOR_IP_PREF, operatorIp);
+                editor.apply();
+                
+                runOnUiThread(() -> {
+                    Toast.makeText(CartPicker.this, 
+                        "Found operator at " + operatorIp, Toast.LENGTH_SHORT).show();
+                    stopDiscovery();
+                });
+                
+                isResolving = false;
+            }
+        };
+    }
+    
+    private void startDiscovery() {
+        try {
+            nsdManager.discoverServices(OPERATOR_SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, discoveryListener);
+        } catch (Exception e) {
+            e.printStackTrace();
+            showManualIpDialog();
+        }
+    }
+    
+    private void stopDiscovery() {
+        try {
+            nsdManager.stopServiceDiscovery(discoveryListener);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
+    private void showManualIpDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Enter Operator IP");
+        builder.setMessage("Could not automatically find the operator. Please enter the IP address manually.");
+        
+        final EditText input = new EditText(this);
+        input.setInputType(InputType.TYPE_CLASS_TEXT);
+        input.setHint("e.g. 192.168.1.100");
+        builder.setView(input);
+        
+        builder.setPositiveButton("Connect", (dialog, which) -> {
+            String ip = input.getText().toString().trim();
+            if (!ip.isEmpty()) {
+                operatorIp = ip;
+                
+                // Save the IP
+                SharedPreferences.Editor editor = getSharedPreferences("CartAppPrefs", MODE_PRIVATE).edit();
+                editor.putString(OPERATOR_IP_PREF, operatorIp);
+                editor.apply();
+                
+                Toast.makeText(CartPicker.this, 
+                    "Connecting to " + operatorIp, Toast.LENGTH_SHORT).show();
+            }
+        });
+        
+        builder.setNegativeButton("Cancel", (dialog, which) -> {
+            dialog.cancel();
+            // Show dialog again after a delay
+            handler.postDelayed(this::showManualIpDialog, 5000);
+        });
+        
+        builder.show();
+    }
+    
+    private void startStatusFetching() {
+        isStatusFetchingActive = true;
+        statusFetchThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (isStatusFetchingActive) {
+                    if (operatorIp != null) {
+                        fetchStatusUpdates();
+                    }
+                    try {
+                        Thread.sleep(STATUS_FETCH_INTERVAL);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        break;
+                    }
+                }
+            }
+        });
+        statusFetchThread.start();
+    }
+    
+    private void stopStatusFetching() {
+        isStatusFetchingActive = false;
+        if (statusFetchThread != null) {
+            statusFetchThread.interrupt();
+            statusFetchThread = null;
+        }
+    }
+    
+    private void fetchStatusUpdates() {
+        try {
+            Socket socket = new Socket(operatorIp, PORT);
+            OutputStream output = socket.getOutputStream();
+            PrintWriter writer = new PrintWriter(output, true);
+            
+            // Send a status request message
+            writer.println("STATUS_REQUEST");
+            
+            // Read the response
+            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            String response = reader.readLine();
+            
+            if (response != null && !response.isEmpty()) {
+                // Process the status updates
+                processStatusUpdates(response);
+            }
+            
+            socket.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
+    private void processStatusUpdates(String response) {
+        // Format: LINE,ITEM,QTY,STATUS
+        String[] updates = response.split("\\|");
+        
+        for (String update : updates) {
+            String[] parts = update.split(",");
+            if (parts.length >= 4) {
+                String line = parts[0].trim();
+                String item = parts[1].trim();
+                String qty = parts[2].trim();
+                String status = parts[3].trim();
+                
+                // Find the matching request in pending area
+                updatePendingRequestStatus(line, item, qty, status);
+            }
+        }
+    }
+    
+    private void updatePendingRequestStatus(String line, String item, String qty, String status) {
+        // Find the request in the pending area
+        for (int i = 0; i < utilityLayout.getChildCount(); i++) {
+            View child = utilityLayout.getChildAt(i);
+            RequestItem request = (RequestItem) child.getTag();
+            
+            if (request != null && 
+                request.getLine().equals(line) && 
+                request.getItem().equals(item) && 
+                request.getQuantity().equals(qty)) {
+                
+                // Update the status on the UI thread
+                final View cardView = child;
+                final String newStatus = status;
+                
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        TextView statusText = cardView.findViewById(R.id.statusText);
+                        statusText.setText(newStatus);
+                        
+                        if (newStatus.equals("MOVING")) {
+                            statusText.setTextColor(Color.BLUE);
+                            statusText.setBackgroundColor(Color.WHITE);
+                            cardView.setBackgroundResource(R.drawable.row_background_selected);
+                        } else if (newStatus.equals("PENDING")) {
+                            statusText.setTextColor(Color.YELLOW);
+                            statusText.setBackgroundColor(Color.BLACK);
+                            cardView.setBackgroundResource(R.drawable.row_background);
+                        } else if (newStatus.equals("DONE")) {
+                            statusText.setTextColor(Color.GREEN);
+                            statusText.setBackgroundColor(Color.WHITE);
+                            cardView.setBackgroundResource(R.drawable.row_background);
+                            
+                            // Remove the card after 3 seconds
+                            handler.postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    utilityLayout.removeView(cardView);
+                                }
+                            }, 3000);
+                        }
+                    }
+                });
+                
+                break;
+            }
+        }
     }
 
-    private void sendMessage(String message) {
+    private boolean sendMessage(String message) {
+        if (operatorIp == null) {
+            Toast.makeText(this, "Operator IP not set. Please wait for connection.", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        
         try {
-            Socket socket = new Socket(OPERATOR_IP, PORT);
+            Socket socket = new Socket(operatorIp, PORT);
             OutputStream output = socket.getOutputStream();
             PrintWriter writer = new PrintWriter(output, true);
             writer.println(message);
             socket.close();
 
-            Toast.makeText(this, "Request sent", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Request sent to operator", Toast.LENGTH_SHORT).show();
+            return true;
         } catch (Exception e) {
             e.printStackTrace();
             Toast.makeText(this, "Failed to send: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            return false;
         }
+    }
+
+    private void addRequestCard(RequestItem request) {
+        LayoutInflater inflater = LayoutInflater.from(this);
+        View cardView = inflater.inflate(R.layout.request_card_item, cardsLayout, false);
+
+        TextView itemNameText = cardView.findViewById(R.id.itemNameText);
+        TextView quantityText = cardView.findViewById(R.id.quantityText);
+        TextView timestampText = cardView.findViewById(R.id.timestampText);
+        TextView statusText = cardView.findViewById(R.id.statusText);
+
+        itemNameText.setText(request.getItem());
+        quantityText.setText("Qty: " + request.getQuantity());
+
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
+        timestampText.setText("Sent: " + sdf.format(request.getTimestamp()));
+        
+        // Set initial status
+        statusText.setText("PENDING");
+        statusText.setTextColor(Color.YELLOW); // Yellow for pending
+        statusText.setBackgroundColor(Color.BLACK); // Black background for pending
+
+        // Tag the view with the request for later reference
+        cardView.setTag(request);
+
+        // Add to request column at the top (index 0)
+        cardsLayout.addView(cardView, 0);
+    }
+
+    private void moveRequestToPending(RequestItem request) {
+        // First find and remove from request column
+        for (int i = 0; i < cardsLayout.getChildCount(); i++) {
+            View child = cardsLayout.getChildAt(i);
+            if (child.getTag() == request) {
+                cardsLayout.removeView(child);
+                break;
+            }
+        }
+
+        // Create new card in pending column
+        LayoutInflater inflater = LayoutInflater.from(this);
+        View cardView = inflater.inflate(R.layout.request_card_item, utilityLayout, false);
+
+        TextView itemNameText = cardView.findViewById(R.id.itemNameText);
+        TextView quantityText = cardView.findViewById(R.id.quantityText);
+        TextView timestampText = cardView.findViewById(R.id.timestampText);
+        TextView statusText = cardView.findViewById(R.id.statusText);
+
+        itemNameText.setText(request.getItem());
+        quantityText.setText("Qty: " + request.getQuantity());
+
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
+        timestampText.setText("Processing since: " + sdf.format(new Date()));
+        
+        // Set status to PENDING (not MOVING) when moved to pending column
+        statusText.setText("PENDING");
+        statusText.setTextColor(Color.YELLOW);
+        statusText.setBackgroundColor(Color.BLACK);
+
+        // Tag the view with the request for later reference
+        cardView.setTag(request);
+
+        // Add to pending column at the top (index 0)
+        utilityLayout.addView(cardView, 0);
+        
+        // Add double-click listener to mark as DONE
+        cardView.setOnClickListener(new View.OnClickListener() {
+            private long lastClickTime = 0;
+            
+            @Override
+            public void onClick(View v) {
+                long clickTime = System.currentTimeMillis();
+                if (clickTime - lastClickTime < 300) { // Double click detected
+                    // Mark as DONE
+                    TextView statusText = cardView.findViewById(R.id.statusText);
+                    statusText.setText("DONE");
+                    statusText.setTextColor(Color.GREEN);
+                    statusText.setBackgroundColor(Color.WHITE);
+                    
+                    // Send DONE status to operator
+                    String message = request.getLine() + "," + request.getItem() + "," + 
+                                    request.getQuantity() + ",DONE";
+                    sendMessage(message);
+                    
+                    // Remove the card after 3 seconds
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            utilityLayout.removeView(cardView);
+                        }
+                    }, 3000);
+                }
+                lastClickTime = clickTime;
+            }
+        });
+    }
+
+    // For demo purposes only - simulates request processing
+    private void simulateRequestProcessing(final RequestItem request) {
+        // Simulate a delay before moving to pending
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                moveRequestToPending(request);
+            }
+        }, 5000 + new Random().nextInt(5000)); // Random delay between 5-10 seconds
+    }
+
+    // Class to represent a request item
+    private static class RequestItem {
+        private String line;
+        private String item;
+        private String quantity;
+        private Date timestamp;
+
+        public RequestItem(String line, String item, String quantity, Date timestamp) {
+            this.line = line;
+            this.item = item;
+            this.quantity = quantity;
+            this.timestamp = timestamp;
+        }
+
+        public String getLine() { return line; }
+        public String getItem() { return item; }
+        public String getQuantity() { return quantity; }
+        public Date getTimestamp() { return timestamp; }
     }
 }

@@ -4,99 +4,229 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/black"
+    android:padding="20dp"
     android:fitsSystemWindows="true">
 
     <!-- Sidebar Panel -->
     <LinearLayout
-        android:layout_width="149dp"
+        android:layout_width="180dp"
         android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:paddingEnd="20dp">
 
+        <!-- Logo -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="76dp"
+            android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:paddingHorizontal="4dp">
+            android:gravity="center_vertical"
+            android:paddingBottom="20dp">
 
             <TextView
-                android:id="@+id/textView6"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="P"
                 android:textColor="@color/white"
-                android:textFontWeight="900"
-                android:textSize="36sp" />
+                android:textStyle="bold"
+                android:textSize="40sp" />
 
             <ImageView
-                android:layout_width="20dp"
-                android:layout_height="25dp"
+                android:layout_width="24dp"
+                android:layout_height="wrap_content"
                 android:layout_gravity="bottom"
                 android:layout_marginBottom="6dp"
                 app:srcCompat="@drawable/raspb" />
 
             <TextView
-                android:id="@+id/textView7"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="CART"
                 android:textColor="@color/white"
-                android:textFontWeight="900"
-                android:textSize="36sp" />
+                android:textStyle="bold"
+                android:textSize="40sp" />
         </LinearLayout>
 
-        <Space
+        <!-- Operator Title -->
+        <TextView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:text="OPERATOR"
+            android:textColor="@color/white"
+            android:textStyle="bold"
+            android:textSize="24sp"
+            android:paddingBottom="24dp"/>
 
+        <!-- Status Legend -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="19dp">
-            <Button
-                android:id="@+id/ButtonOn"
+            android:orientation="vertical"
+            android:padding="8dp"
+            android:background="#222222"
+            android:layout_marginBottom="16dp">
+
+            <TextView
                 android:layout_width="match_parent"
-                android:layout_height="70dp"
-                android:padding="10dp"
-                android:text="ON"
-                android:textAlignment="center"
-                android:textSize="35sp"
+                android:layout_height="wrap_content"
+                android:text="STATUS GUIDE:"
                 android:textColor="@color/white"
-                android:textFontWeight="900"
-                android:background="@drawable/rounded_background" />
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:paddingBottom="8dp"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingVertical="4dp">
+
+                <TextView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:text="✓"
+                    android:textColor="#00AA00"
+                    android:gravity="center"
+                    android:textSize="16sp"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=" New Request"
+                    android:textColor="@color/white"
+                    android:textSize="14sp"
+                    android:layout_marginStart="4dp"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingVertical="4dp">
+
+                <TextView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:text="MOVING"
+                    android:textColor="#888888"
+                    android:gravity="center"
+                    android:textSize="10sp"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=" In Progress"
+                    android:textColor="@color/white"
+                    android:textSize="14sp"
+                    android:layout_marginStart="4dp"/>
+            </LinearLayout>
         </LinearLayout>
 
-        <LinearLayout
+        <!-- Instructions -->
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="19dp">
-            <Button
-                android:id="@+id/ButtonOff"
-                android:layout_width="match_parent"
-                android:layout_height="70dp"
-                android:padding="10dp"
-                android:text="OFF"
-                android:textAlignment="center"
-                android:textSize="35sp"
-                android:textColor="@color/white"
-                android:textFontWeight="900"
-                android:background="@drawable/rounded_background" />
-        </LinearLayout>
+            android:text="Tap any request to mark it as 'MOVING' when you start handling it"
+            android:textColor="#BBBBBB"
+            android:textSize="14sp"
+            android:gravity="left"
+            android:padding="8dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Tap again to mark as complete"
+            android:textColor="#BBBBBB"
+            android:textSize="14sp"
+            android:gravity="left"
+            android:padding="8dp"/>
     </LinearLayout>
 
     <!-- Main Request Area -->
-    <ScrollView
-        android:layout_width="match_parent"
+    <LinearLayout
+        android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:background="@color/white"
-        android:padding="10dp">
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:background="#222222"
+        android:padding="12dp">
 
-        <LinearLayout
-            android:id="@+id/viewLayout"
+        <!-- Header Title -->
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:text="INCOMING REQUESTS"
+            android:textColor="@color/white"
+            android:textStyle="bold"
+            android:textSize="24sp"
+            android:gravity="center"
+            android:padding="12dp"/>
+
+        <!-- Header Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="#333333"
+            android:padding="8dp"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="LINE"
+                android:textColor="#AAAAAA"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:padding="8dp"/>
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="QTY"
+                android:textColor="#AAAAAA"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:padding="8dp"/>
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="2"
+                android:text="ITEM"
+                android:textColor="#AAAAAA"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:padding="8dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="STATUS"
+                android:textColor="#AAAAAA"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:padding="8dp"/>
         </LinearLayout>
-    </ScrollView>
+
+        <!-- Request Content -->
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <LinearLayout
+                android:id="@+id/viewLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="4dp">
+                <!-- Request rows will be added here dynamically -->
+            </LinearLayout>
+        </ScrollView>
+    </LinearLayout>
 </LinearLayout>
