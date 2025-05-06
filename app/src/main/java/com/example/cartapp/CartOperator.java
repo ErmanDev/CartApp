@@ -17,6 +17,7 @@ import android.media.ToneGenerator;
 import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
 import android.content.Context;
+import android.content.pm.ActivityInfo;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -56,6 +57,7 @@ public class CartOperator extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         setContentView(R.layout.activity_cart_operator);
 
         viewLayout = findViewById(R.id.viewLayout);
@@ -256,7 +258,7 @@ public class CartOperator extends AppCompatActivity {
 
         TextView lineNumView = createBox(lineNum, Color.BLACK);
         TextView qtyView = createBox(qty, Color.BLACK);
-        TextView itemView = createColoredItemBox(item);
+        TextView itemView = createColoredItemBox(item); // Updated to handle item colors
         TextView statusView = createStatusBox(status);
 
         row.addView(lineNumView);

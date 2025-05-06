@@ -43,7 +43,7 @@ public class CartPicker extends AppCompatActivity {
     private Button line1Btn, line2Btn, line3Btn, line4Btn, line5Btn;
     private String selectedLine = "";
     private Button sendBtn, decreaseBtn, increaseBtn;
-    private Button btnCoop, btnCard, btnTape, btnCrayon, btnBlade, btnRubberBond;
+    private Button btnCard, btnTape, btnCrayon, btnBlade, btnRubberBond;
     private TextView lineTextView, qtyDisplay;
     private LinearLayout cardsLayout, utilityLayout;
     private String selectedItem = "";
@@ -89,7 +89,6 @@ public class CartPicker extends AppCompatActivity {
         qtyDisplay = findViewById(R.id.qtyDisplay);
         
         // Initialize item buttons
-        btnCoop = findViewById(R.id.btnCoop);
         btnCard = findViewById(R.id.btnCard);
         btnTape = findViewById(R.id.btnTape);
         btnCrayon = findViewById(R.id.btnCrayon);
@@ -149,23 +148,28 @@ public class CartPicker extends AppCompatActivity {
             }
         });
 
-        // Set up item button click listeners
+        // Update item button click listener to show the color selection dialog only for the "Card" button
         View.OnClickListener itemButtonListener = new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 // Reset all buttons to default background
                 resetItemButtonBackgrounds();
-                
+
                 // Set selected button background
                 v.setBackgroundColor(Color.BLACK);
                 ((Button) v).setTextColor(Color.WHITE);
-                
-                // Set selected item
-                selectedItem = ((Button) v).getText().toString();
+
+                // Show color selection dialog only for the "Card" button
+                String itemName = ((Button) v).getText().toString();
+                if (itemName.equalsIgnoreCase("Card")) {
+                    showColorSelectionDialog(itemName);
+                } else {
+                    selectedItem = itemName;
+                    Toast.makeText(CartPicker.this, "Selected: " + selectedItem, Toast.LENGTH_SHORT).show();
+                }
             }
         };
 
-        btnCoop.setOnClickListener(itemButtonListener);
         btnCard.setOnClickListener(itemButtonListener);
         btnTape.setOnClickListener(itemButtonListener);
         btnCrayon.setOnClickListener(itemButtonListener);
@@ -631,14 +635,12 @@ public class CartPicker extends AppCompatActivity {
     }
 
     private void resetItemButtonBackgrounds() {
-        btnCoop.setBackgroundColor(Color.WHITE);
         btnCard.setBackgroundColor(Color.WHITE);
         btnTape.setBackgroundColor(Color.WHITE);
         btnCrayon.setBackgroundColor(Color.WHITE);
         btnBlade.setBackgroundColor(Color.WHITE);
         btnRubberBond.setBackgroundColor(Color.WHITE);
         
-        btnCoop.setTextColor(Color.BLACK);
         btnCard.setTextColor(Color.BLACK);
         btnTape.setTextColor(Color.BLACK);
         btnCrayon.setTextColor(Color.BLACK);
@@ -658,6 +660,42 @@ public class CartPicker extends AppCompatActivity {
         line3Btn.setTextColor(Color.BLACK);
         line4Btn.setTextColor(Color.BLACK);
         line5Btn.setTextColor(Color.BLACK);
+    }
+
+    // Add a method to show the color selection dialog
+    private void showColorSelectionDialog(String itemName) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Select a Color for " + itemName);
+
+        // Define color options
+        String[] colors = {"Red", "Blue", "Green", "Yellow"};
+        int[] colorValues = {Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW};
+
+        // Create a layout for color buttons
+        LinearLayout colorLayout = new LinearLayout(this);
+        colorLayout.setOrientation(LinearLayout.HORIZONTAL);
+        colorLayout.setPadding(16, 16, 16, 16);
+
+        for (int i = 0; i < colors.length; i++) {
+            Button colorButton = new Button(this);
+            colorButton.setText(colors[i]);
+            colorButton.setBackgroundColor(colorValues[i]);
+            colorButton.setTextColor(Color.WHITE);
+            colorButton.setPadding(16, 16, 16, 16);
+
+            int finalI = i;
+            colorButton.setOnClickListener(v -> {
+                selectedItem = itemName + " (" + colors[finalI] + ")";
+                Toast.makeText(CartPicker.this, "Selected: " + selectedItem, Toast.LENGTH_SHORT).show();
+                builder.create().dismiss();
+            });
+
+            colorLayout.addView(colorButton);
+        }
+
+        builder.setView(colorLayout);
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
+        builder.show();
     }
 
     // Class to represent a request item

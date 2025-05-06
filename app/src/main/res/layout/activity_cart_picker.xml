@@ -194,15 +194,6 @@
                         android:useDefaultMargins="true">
 
                         <Button
-                            android:id="@+id/btnCoop"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_columnWeight="1"
-                            android:text="COOP"
-                            android:textSize="16sp"
-                            android:background="#FFF" />
-
-                        <Button
                             android:id="@+id/btnCard"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
