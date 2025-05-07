@@ -662,7 +662,6 @@ public class CartPicker extends AppCompatActivity {
         line5Btn.setTextColor(Color.BLACK);
     }
 
-    // Add a method to show the color selection dialog
     private void showColorSelectionDialog(String itemName) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Select a Color for " + itemName);
@@ -687,7 +686,9 @@ public class CartPicker extends AppCompatActivity {
             colorButton.setOnClickListener(v -> {
                 selectedItem = itemName + " (" + colors[finalI] + ")";
                 Toast.makeText(CartPicker.this, "Selected: " + selectedItem, Toast.LENGTH_SHORT).show();
-                builder.create().dismiss();
+
+                // Dismiss the dialog
+                dialog.dismiss();
             });
 
             colorLayout.addView(colorButton);
@@ -695,10 +696,11 @@ public class CartPicker extends AppCompatActivity {
 
         builder.setView(colorLayout);
         builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
-        builder.show();
+        AlertDialog dialog = builder.create();
+        dialog.show();
     }
 
-    // Class to represent a request item
+ // Class to represent a request item
     private static class RequestItem {
         private String line;
         private String item;
