@@ -47,6 +47,7 @@ public class CartPicker extends AppCompatActivity {
     private TextView lineTextView, qtyDisplay;
     private LinearLayout cardsLayout, utilityLayout;
     private String selectedItem = "";
+    private String selectedColor = ""; // Added for color selection
 
     private static final String OPERATOR_IP_PREF = "operator_ip";
     private static final String OPERATOR_SERVICE_TYPE = "_cartoperator._tcp.";
@@ -54,7 +55,6 @@ public class CartPicker extends AppCompatActivity {
     private static final int PORT = 5010;
     private static final int STATUS_FETCH_INTERVAL = 3000; // 3 seconds
 
-    // List to track pending requests
     private List<RequestItem> pendingRequests = new ArrayList<>();
     private Handler handler = new Handler(Looper.getMainLooper());
     private int currentQuantity = 1;
@@ -107,14 +107,9 @@ public class CartPicker extends AppCompatActivity {
         View.OnClickListener lineButtonListener = new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // Reset all line buttons to default state
                 resetLineButtonBackgrounds();
-                
-                // Set selected button background
                 v.setBackgroundColor(Color.BLACK);
                 ((Button) v).setTextColor(Color.WHITE);
-                
-                // Set selected line
                 selectedLine = ((Button) v).getText().toString();
                 lineTextView.setText(selectedLine);
             }
@@ -130,41 +125,32 @@ public class CartPicker extends AppCompatActivity {
         line1Btn.performClick();
 
         // Set up quantity controls
-        decreaseBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (currentQuantity > 1) {
-                    currentQuantity--;
-                    qtyDisplay.setText(String.valueOf(currentQuantity));
-                }
-            }
-        });
-
-        increaseBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                currentQuantity++;
+        decreaseBtn.setOnClickListener(v -> {
+            if (currentQuantity > 1) {
+                currentQuantity--;
                 qtyDisplay.setText(String.valueOf(currentQuantity));
             }
         });
 
-        // Update item button click listener to show the color selection dialog only for the "Card" button
+        increaseBtn.setOnClickListener(v -> {
+            currentQuantity++;
+            qtyDisplay.setText(String.valueOf(currentQuantity));
+        });
+
+        // Item button click listener
         View.OnClickListener itemButtonListener = new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // Reset all buttons to default background
                 resetItemButtonBackgrounds();
-
-                // Set selected button background
                 v.setBackgroundColor(Color.BLACK);
                 ((Button) v).setTextColor(Color.WHITE);
 
-                // Show color selection dialog only for the "Card" button
                 String itemName = ((Button) v).getText().toString();
                 if (itemName.equalsIgnoreCase("Card")) {
                     showColorSelectionDialog(itemName);
                 } else {
                     selectedItem = itemName;
+                    selectedColor = ""; // Clear color for non-card items
                     Toast.makeText(CartPicker.this, "Selected: " + selectedItem, Toast.LENGTH_SHORT).show();
                 }
             }
@@ -177,43 +163,37 @@ public class CartPicker extends AppCompatActivity {
         btnRubberBond.setOnClickListener(itemButtonListener);
 
         // Handle send button click
-        sendBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String line = selectedLine;
-                String qty = String.valueOf(currentQuantity);
+        sendBtn.setOnClickListener(v -> {
+            String line = selectedLine;
+            String qty = String.valueOf(currentQuantity);
 
-                // Check if a valid line is selected
-                if (line.isEmpty()) {
-                    Toast.makeText(CartPicker.this, "Please select a valid line (Line 1-5)", Toast.LENGTH_SHORT).show();
-                    return;
-                }
+            if (line.isEmpty()) {
+                Toast.makeText(CartPicker.this, "Please select a valid line (Line 1-5)", Toast.LENGTH_SHORT).show();
+                return;
+            }
 
-                if (selectedItem.isEmpty()) {
-                    Toast.makeText(CartPicker.this, "Please select an item", Toast.LENGTH_SHORT).show();
-                    return;
-                }
+            if (selectedItem.isEmpty()) {
+                Toast.makeText(CartPicker.this, "Please select an item", Toast.LENGTH_SHORT).show();
+                return;
+            }
 
-                String message = line + "," + selectedItem + "," + qty;
-                boolean sent = sendMessage(message);
+            String message = line + "," + selectedItem + "," + qty;
+            boolean sent = sendMessage(message);
 
-                if (sent) {
-                    // Add the request card
-                    RequestItem request = new RequestItem(line, selectedItem, qty, new Date());
-                    pendingRequests.add(request);
-                    addRequestCard(request);
-                    
-                    // Simulate request processing to move to pending
-                    simulateRequestProcessing(request);
+            if (sent) {
+                RequestItem request = new RequestItem(line, selectedItem, qty, new Date(), selectedColor);
+                pendingRequests.add(request);
+                addRequestCard(request);
+                
+                simulateRequestProcessing(request);
 
-                    // Reset selected item
-                    selectedItem = "";
-                    resetItemButtonBackgrounds();
-                }
+                // Reset selections
+                selectedItem = "";
+                selectedColor = "";
+                resetItemButtonBackgrounds();
             }
         });
         
-        // Start status fetching thread
         startStatusFetching();
     }
     
@@ -229,10 +209,8 @@ public class CartPicker extends AppCompatActivity {
         operatorIp = prefs.getString(OPERATOR_IP_PREF, null);
         
         if (operatorIp != null) {
-            // Try to connect to verify the IP is still valid
             verifyOperatorConnection();
         } else {
-            // Start discovery if no saved IP
             startDiscovery();
         }
     }
@@ -242,11 +220,9 @@ public class CartPicker extends AppCompatActivity {
             try {
                 Socket socket = new Socket(operatorIp, PORT);
                 socket.close();
-                // Connection successful, IP is valid
                 runOnUiThread(() -> Toast.makeText(CartPicker.this, 
                     "Connected to operator at " + operatorIp, Toast.LENGTH_SHORT).show());
             } catch (Exception e) {
-                // Connection failed, start discovery
                 runOnUiThread(() -> {
                     Toast.makeText(CartPicker.this, 
                         "Could not connect to operator, starting discovery", Toast.LENGTH_SHORT).show();
@@ -268,9 +244,7 @@ public class CartPicker extends AppCompatActivity {
             }
 
             @Override
-            public void onStopDiscoveryFailed(String serviceType, int errorCode) {
-                // Ignore
-            }
+            public void onStopDiscoveryFailed(String serviceType, int errorCode) {}
 
             @Override
             public void onDiscoveryStarted(String serviceType) {
@@ -279,9 +253,7 @@ public class CartPicker extends AppCompatActivity {
             }
 
             @Override
-            public void onDiscoveryStopped(String serviceType) {
-
-            }
+            public void onDiscoveryStopped(String serviceType) {}
 
             @Override
             public void onServiceFound(NsdServiceInfo service) {
@@ -296,9 +268,7 @@ public class CartPicker extends AppCompatActivity {
             }
 
             @Override
-            public void onServiceLost(NsdServiceInfo service) {
-                // Ignore
-            }
+            public void onServiceLost(NsdServiceInfo service) {}
         };
     }
     
@@ -318,7 +288,6 @@ public class CartPicker extends AppCompatActivity {
             public void onServiceResolved(NsdServiceInfo serviceInfo) {
                 operatorIp = serviceInfo.getHost().getHostAddress();
                 
-                // Save the IP
                 SharedPreferences.Editor editor = getSharedPreferences("CartAppPrefs", MODE_PRIVATE).edit();
                 editor.putString(OPERATOR_IP_PREF, operatorIp);
                 editor.apply();
@@ -366,7 +335,6 @@ public class CartPicker extends AppCompatActivity {
             if (!ip.isEmpty()) {
                 operatorIp = ip;
                 
-                // Save the IP
                 SharedPreferences.Editor editor = getSharedPreferences("CartAppPrefs", MODE_PRIVATE).edit();
                 editor.putString(OPERATOR_IP_PREF, operatorIp);
                 editor.apply();
@@ -378,8 +346,7 @@ public class CartPicker extends AppCompatActivity {
         
         builder.setNegativeButton("Cancel", (dialog, which) -> {
             dialog.cancel();
-            // Show dialog again after a delay
-            handler.postDelayed(this::showManualIpDialog, 5000);
+            handler.postDelayed(() -> showManualIpDialog(), 5000);
         });
         
         builder.show();
@@ -387,19 +354,16 @@ public class CartPicker extends AppCompatActivity {
     
     private void startStatusFetching() {
         isStatusFetchingActive = true;
-        statusFetchThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while (isStatusFetchingActive) {
-                    if (operatorIp != null) {
-                        fetchStatusUpdates();
-                    }
-                    try {
-                        Thread.sleep(STATUS_FETCH_INTERVAL);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                        break;
-                    }
+        statusFetchThread = new Thread(() -> {
+            while (isStatusFetchingActive) {
+                if (operatorIp != null) {
+                    fetchStatusUpdates();
+                }
+                try {
+                    Thread.sleep(STATUS_FETCH_INTERVAL);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    break;
                 }
             }
         });
@@ -420,15 +384,12 @@ public class CartPicker extends AppCompatActivity {
             OutputStream output = socket.getOutputStream();
             PrintWriter writer = new PrintWriter(output, true);
             
-            // Send a status request message
             writer.println("STATUS_REQUEST");
             
-            // Read the response
             BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             String response = reader.readLine();
             
             if (response != null && !response.isEmpty()) {
-                // Process the status updates
                 processStatusUpdates(response);
             }
             
@@ -439,7 +400,6 @@ public class CartPicker extends AppCompatActivity {
     }
     
     private void processStatusUpdates(String response) {
-        // Format: LINE,ITEM,QTY,STATUS
         String[] updates = response.split("\\|");
         
         for (String update : updates) {
@@ -450,14 +410,12 @@ public class CartPicker extends AppCompatActivity {
                 String qty = parts[2].trim();
                 String status = parts[3].trim();
                 
-                // Find the matching request in pending area
                 updatePendingRequestStatus(line, item, qty, status);
             }
         }
     }
     
     private void updatePendingRequestStatus(String line, String item, String qty, String status) {
-        // Find the request in the pending area
         for (int i = 0; i < utilityLayout.getChildCount(); i++) {
             View child = utilityLayout.getChildAt(i);
             RequestItem request = (RequestItem) child.getTag();
@@ -467,40 +425,29 @@ public class CartPicker extends AppCompatActivity {
                 request.getItem().equals(item) && 
                 request.getQuantity().equals(qty)) {
                 
-                // Update the status on the UI thread
                 final View cardView = child;
                 final String newStatus = status;
                 
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        TextView statusText = cardView.findViewById(R.id.statusText);
-                        statusText.setText(newStatus);
+                runOnUiThread(() -> {
+                    TextView statusText = cardView.findViewById(R.id.statusText);
+                    statusText.setText(newStatus);
+                    
+                    if (newStatus.equals("MOVING")) {
+                        statusText.setTextColor(Color.BLUE);
+                        statusText.setBackgroundColor(Color.WHITE);
+                        cardView.setBackgroundResource(R.drawable.row_background_selected);
+                    } else if (newStatus.equals("PENDING")) {
+                        statusText.setTextColor(Color.YELLOW);
+                        statusText.setBackgroundColor(Color.BLACK);
+                        cardView.setBackgroundResource(R.drawable.row_background);
+                    } else if (newStatus.equals("DONE")) {
+                        statusText.setTextColor(Color.GREEN);
+                        statusText.setBackgroundColor(Color.WHITE);
+                        cardView.setBackgroundResource(R.drawable.row_background);
                         
-                        if (newStatus.equals("MOVING")) {
-                            statusText.setTextColor(Color.BLUE);
-                            statusText.setBackgroundColor(Color.WHITE);
-                            cardView.setBackgroundResource(R.drawable.row_background_selected);
-                        } else if (newStatus.equals("PENDING")) {
-                            statusText.setTextColor(Color.YELLOW);
-                            statusText.setBackgroundColor(Color.BLACK);
-                            cardView.setBackgroundResource(R.drawable.row_background);
-                        } else if (newStatus.equals("DONE")) {
-                            statusText.setTextColor(Color.GREEN);
-                            statusText.setBackgroundColor(Color.WHITE);
-                            cardView.setBackgroundResource(R.drawable.row_background);
-                            
-                            // Remove the card after 3 seconds
-                            handler.postDelayed(new Runnable() {
-                                @Override
-                                public void run() {
-                                    utilityLayout.removeView(cardView);
-                                }
-                            }, 3000);
-                        }
+                        handler.postDelayed(() -> utilityLayout.removeView(cardView), 3000);
                     }
                 });
-                
                 break;
             }
         }
@@ -540,23 +487,31 @@ public class CartPicker extends AppCompatActivity {
         itemNameText.setText(request.getItem());
         quantityText.setText("Qty: " + request.getQuantity());
 
+        // Set color for card items
+        if (request.getItem().contains("Card") && request.getColor() != null) {
+            int color = Color.BLACK;
+            switch (request.getColor()) {
+                case "Red": color = Color.RED; break;
+                case "Blue": color = Color.BLUE; break;
+                case "Green": color = Color.GREEN; break;
+                case "Yellow": color = Color.YELLOW; break;
+            }
+            itemNameText.setTextColor(color);
+        }
+
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
         timestampText.setText("Sent: " + sdf.format(request.getTimestamp()));
         
-        // Set initial status
         statusText.setText("PENDING");
-        statusText.setTextColor(Color.YELLOW); // Yellow for pending
-        statusText.setBackgroundColor(Color.BLACK); // Black background for pending
+        statusText.setTextColor(Color.YELLOW);
+        statusText.setBackgroundColor(Color.BLACK);
 
-        // Tag the view with the request for later reference
         cardView.setTag(request);
-
-        // Add to request column at the top (index 0)
         cardsLayout.addView(cardView, 0);
     }
 
     private void moveRequestToPending(RequestItem request) {
-        // First find and remove from request column
+        // Find and remove from request column
         for (int i = 0; i < cardsLayout.getChildCount(); i++) {
             View child = cardsLayout.getChildAt(i);
             if (child.getTag() == request) {
@@ -577,61 +532,54 @@ public class CartPicker extends AppCompatActivity {
         itemNameText.setText(request.getItem());
         quantityText.setText("Qty: " + request.getQuantity());
 
+        // Set color for card items
+        if (request.getItem().contains("Card") && request.getColor() != null) {
+            int color = Color.BLACK;
+            switch (request.getColor()) {
+                case "Red": color = Color.RED; break;
+                case "Blue": color = Color.BLUE; break;
+                case "Green": color = Color.GREEN; break;
+                case "Yellow": color = Color.YELLOW; break;
+            }
+            itemNameText.setTextColor(color);
+        }
+
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
         timestampText.setText("Processing since: " + sdf.format(new Date()));
         
-        // Set status to PENDING (not MOVING) when moved to pending column
         statusText.setText("PENDING");
         statusText.setTextColor(Color.YELLOW);
         statusText.setBackgroundColor(Color.BLACK);
 
-        // Tag the view with the request for later reference
         cardView.setTag(request);
-
-        // Add to pending column at the top (index 0)
         utilityLayout.addView(cardView, 0);
         
-        // Add double-click listener to mark as DONE
         cardView.setOnClickListener(new View.OnClickListener() {
             private long lastClickTime = 0;
             
             @Override
             public void onClick(View v) {
                 long clickTime = System.currentTimeMillis();
-                if (clickTime - lastClickTime < 300) { // Double click detected
-                    // Mark as DONE
+                if (clickTime - lastClickTime < 300) {
                     TextView statusText = cardView.findViewById(R.id.statusText);
                     statusText.setText("DONE");
                     statusText.setTextColor(Color.GREEN);
                     statusText.setBackgroundColor(Color.WHITE);
                     
-                    // Send DONE status to operator
                     String message = request.getLine() + "," + request.getItem() + "," + 
                                     request.getQuantity() + ",DONE";
                     sendMessage(message);
                     
-                    // Remove the card after 3 seconds
-                    handler.postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            utilityLayout.removeView(cardView);
-                        }
-                    }, 3000);
+                    handler.postDelayed(() -> utilityLayout.removeView(cardView), 3000);
                 }
                 lastClickTime = clickTime;
             }
         });
     }
 
-    // For demo purposes only - simulates request processing
     private void simulateRequestProcessing(final RequestItem request) {
-        // Simulate a delay before moving to pending
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                moveRequestToPending(request);
-            }
-        }, 5000 + new Random().nextInt(5000)); // Random delay between 5-10 seconds
+        handler.postDelayed(() -> moveRequestToPending(request), 
+            5000 + new Random().nextInt(5000));
     }
 
     private void resetItemButtonBackgrounds() {
@@ -666,57 +614,43 @@ public class CartPicker extends AppCompatActivity {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Select a Color for " + itemName);
 
-        // Define color options
         String[] colors = {"Red", "Blue", "Green", "Yellow"};
-        int[] colorValues = {Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW};
 
-        // Create a layout for color buttons
-        LinearLayout colorLayout = new LinearLayout(this);
-        colorLayout.setOrientation(LinearLayout.HORIZONTAL);
-        colorLayout.setPadding(16, 16, 16, 16);
+        builder.setItems(colors, (dialog, which) -> {
+            selectedColor = colors[which];
+            selectedItem = itemName + " (" + selectedColor + ")";
+            Toast.makeText(CartPicker.this, "Selected: " + selectedItem, Toast.LENGTH_SHORT).show();
+        });
 
-        for (int i = 0; i < colors.length; i++) {
-            Button colorButton = new Button(this);
-            colorButton.setText(colors[i]);
-            colorButton.setBackgroundColor(colorValues[i]);
-            colorButton.setTextColor(Color.WHITE);
-            colorButton.setPadding(16, 16, 16, 16);
+        builder.setNegativeButton("Cancel", (dialog, which) -> {
+            selectedItem = "";
+            selectedColor = "";
+            resetItemButtonBackgrounds();
+            dialog.dismiss();
+        });
 
-            int finalI = i;
-            colorButton.setOnClickListener(v -> {
-                selectedItem = itemName + " (" + colors[finalI] + ")";
-                Toast.makeText(CartPicker.this, "Selected: " + selectedItem, Toast.LENGTH_SHORT).show();
-
-                // Dismiss the dialog
-                dialog.dismiss();
-            });
-
-            colorLayout.addView(colorButton);
-        }
-
-        builder.setView(colorLayout);
-        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
-        AlertDialog dialog = builder.create();
-        dialog.show();
+        builder.show();
     }
 
- // Class to represent a request item
     private static class RequestItem {
         private String line;
         private String item;
         private String quantity;
         private Date timestamp;
+        private String color;
 
-        public RequestItem(String line, String item, String quantity, Date timestamp) {
+        public RequestItem(String line, String item, String quantity, Date timestamp, String color) {
             this.line = line;
             this.item = item;
             this.quantity = quantity;
             this.timestamp = timestamp;
+            this.color = color;
         }
 
         public String getLine() { return line; }
         public String getItem() { return item; }
         public String getQuantity() { return quantity; }
         public Date getTimestamp() { return timestamp; }
+        public String getColor() { return color; }
     }
 }
